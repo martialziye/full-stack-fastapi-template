@@ -421,7 +421,7 @@ export function PopularTemplatesPanel() {
             </h3>
           </div>
 
-          <div className="min-h-[320px] rounded-[var(--radius-control)] border border-border/70 bg-background p-4 text-sm leading-7 text-foreground">
+          <div className="min-h-[320px] max-h-[420px] overflow-y-auto rounded-[var(--radius-control)] border border-border/70 bg-background p-4 text-sm leading-7 text-foreground">
             {renderPreview(selectedTemplate.preview)}
           </div>
 
