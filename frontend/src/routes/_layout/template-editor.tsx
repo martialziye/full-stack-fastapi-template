@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { ChevronDown } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ import {
   renderTemplateText,
   syncSchemaWithContent,
 } from "@/lib/templateVariables"
+import { cn } from "@/lib/utils"
 
 const CATEGORY_OPTIONS: Array<{ label: string; value: TemplateCategory }> = [
   { label: "Cover Letter", value: "cover_letter" },
@@ -100,6 +102,9 @@ function TemplateEditorPage() {
     Record<string, TemplateVariableConfig>
   >({})
   const [preview, setPreview] = useState("")
+  const [expandedVariables, setExpandedVariables] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [hydratedTemplateId, setHydratedTemplateId] = useState<string | null>(
     null,
   )
@@ -166,6 +171,18 @@ function TemplateEditorPage() {
     () => extractTemplateVariables(content),
     [content],
   )
+
+  useEffect(() => {
+    setExpandedVariables((current) => {
+      const next = new Set(
+        Array.from(current).filter((name) => variableNames.includes(name)),
+      )
+      if (next.size === current.size) {
+        return current
+      }
+      return next
+    })
+  }, [variableNames])
 
   const createTemplateMutation = useMutation({
     mutationFn: createTemplate,
@@ -291,6 +308,18 @@ function TemplateEditorPage() {
     })
   }
 
+  const toggleVariableExpanded = (variableName: string) => {
+    setExpandedVariables((current) => {
+      const next = new Set(current)
+      if (next.has(variableName)) {
+        next.delete(variableName)
+      } else {
+        next.add(variableName)
+      }
+      return next
+    })
+  }
+
   const isSaving =
     createTemplateMutation.isPending ||
     updateTemplateMutation.isPending ||
@@ -401,104 +430,127 @@ function TemplateEditorPage() {
                 const config =
                   variablesSchema[variableName] || defaultTemplateSchema()
                 const isList = config.type === "list"
+                const isExpanded = expandedVariables.has(variableName)
 
                 return (
-                  <div
-                    key={variableName}
-                    className="space-y-2 rounded-lg border p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium">{variableName}</p>
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={config.required}
+                  <div key={variableName} className="rounded-lg border">
+                    <button
+                      type="button"
+                      className="hover:bg-muted/40 flex w-full items-center justify-between gap-3 p-3 text-left transition-colors"
+                      onClick={() => toggleVariableExpanded(variableName)}
+                      aria-expanded={isExpanded}
+                      aria-controls={`variable-panel-${variableName}`}
+                    >
+                      <p className="truncate font-medium">{variableName}</p>
+                      <ChevronDown
+                        className={cn(
+                          "text-muted-foreground size-4 shrink-0 transition-transform",
+                          isExpanded ? "rotate-180" : "rotate-0",
+                        )}
+                      />
+                    </button>
+
+                    {isExpanded ? (
+                      <div
+                        id={`variable-panel-${variableName}`}
+                        className="space-y-2 border-t p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-muted-foreground">
+                            Configure variable details
+                          </p>
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <input
+                              type="checkbox"
+                              checked={config.required}
+                              onChange={(event) =>
+                                updateVariableConfig(variableName, (current) => ({
+                                  ...current,
+                                  required: event.target.checked,
+                                }))
+                              }
+                            />
+                            Required
+                          </label>
+                        </div>
+
+                        <select
+                          className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                          value={config.type}
+                          onChange={(event) => {
+                            const nextType = event.target.value as "text" | "list"
+                            updateVariableConfig(variableName, (current) => ({
+                              ...current,
+                              type: nextType,
+                              default:
+                                nextType === "list"
+                                  ? Array.isArray(current.default)
+                                    ? current.default
+                                    : []
+                                  : typeof current.default === "string"
+                                    ? current.default
+                                    : "",
+                              example:
+                                nextType === "list"
+                                  ? Array.isArray(current.example)
+                                    ? current.example
+                                    : []
+                                  : typeof current.example === "string"
+                                    ? current.example
+                                    : "",
+                            }))
+                          }}
+                        >
+                          <option value="text">text</option>
+                          <option value="list">list</option>
+                        </select>
+
+                        <Input
+                          placeholder="Description"
+                          value={config.description || ""}
                           onChange={(event) =>
                             updateVariableConfig(variableName, (current) => ({
                               ...current,
-                              required: event.target.checked,
+                              description: event.target.value,
                             }))
                           }
                         />
-                        Required
-                      </label>
-                    </div>
 
-                    <select
-                      className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                      value={config.type}
-                      onChange={(event) => {
-                        const nextType = event.target.value as "text" | "list"
-                        updateVariableConfig(variableName, (current) => ({
-                          ...current,
-                          type: nextType,
-                          default:
-                            nextType === "list"
-                              ? Array.isArray(current.default)
-                                ? current.default
-                                : []
-                              : typeof current.default === "string"
-                                ? current.default
-                                : "",
-                          example:
-                            nextType === "list"
-                              ? Array.isArray(current.example)
-                                ? current.example
-                                : []
-                              : typeof current.example === "string"
-                                ? current.example
-                                : "",
-                        }))
-                      }}
-                    >
-                      <option value="text">text</option>
-                      <option value="list">list</option>
-                    </select>
+                        <Input
+                          placeholder={isList ? "Example: a, b" : "Example"}
+                          value={
+                            isList
+                              ? listToString(config.example)
+                              : String(config.example || "")
+                          }
+                          onChange={(event) =>
+                            updateVariableConfig(variableName, (current) => ({
+                              ...current,
+                              example: isList
+                                ? stringToList(event.target.value)
+                                : event.target.value,
+                            }))
+                          }
+                        />
 
-                    <Input
-                      placeholder="Description"
-                      value={config.description || ""}
-                      onChange={(event) =>
-                        updateVariableConfig(variableName, (current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                    />
-
-                    <Input
-                      placeholder={isList ? "Example: a, b" : "Example"}
-                      value={
-                        isList
-                          ? listToString(config.example)
-                          : String(config.example || "")
-                      }
-                      onChange={(event) =>
-                        updateVariableConfig(variableName, (current) => ({
-                          ...current,
-                          example: isList
-                            ? stringToList(event.target.value)
-                            : event.target.value,
-                        }))
-                      }
-                    />
-
-                    <Input
-                      placeholder={isList ? "Default: a, b" : "Default"}
-                      value={
-                        isList
-                          ? listToString(config.default)
-                          : String(config.default || "")
-                      }
-                      onChange={(event) =>
-                        updateVariableConfig(variableName, (current) => ({
-                          ...current,
-                          default: isList
-                            ? stringToList(event.target.value)
-                            : event.target.value,
-                        }))
-                      }
-                    />
+                        <Input
+                          placeholder={isList ? "Default: a, b" : "Default"}
+                          value={
+                            isList
+                              ? listToString(config.default)
+                              : String(config.default || "")
+                          }
+                          onChange={(event) =>
+                            updateVariableConfig(variableName, (current) => ({
+                              ...current,
+                              default: isList
+                                ? stringToList(event.target.value)
+                                : event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 )
               })

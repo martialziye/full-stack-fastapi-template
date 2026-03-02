@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
+import PopularTemplatesPanel from "@/components/Dashboard/PopularTemplatesPanel"
 import useAuth from "@/hooks/useAuth"
 import { listRecentTemplates } from "@/lib/templateMvpApi"
 
@@ -86,6 +87,8 @@ function Dashboard() {
           </div>
         )}
       </section>
+
+      <PopularTemplatesPanel />
     </div>
   )
 }
