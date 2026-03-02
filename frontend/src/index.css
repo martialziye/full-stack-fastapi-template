@@ -152,3 +152,41 @@
     cursor: pointer;
   }
 }
+
+@layer utilities {
+  .scrollbar-hover {
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .scrollbar-hover:hover {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 32%, transparent)
+      transparent;
+  }
+
+  .scrollbar-hover:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-hover:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(
+      in oklab,
+      var(--foreground) 28%,
+      transparent
+    );
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  .scrollbar-hover:hover::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
