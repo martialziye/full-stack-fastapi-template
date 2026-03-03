@@ -11,3 +11,6 @@ node_modules/
 .env.*
 !.env.example
 !.env.*.example
+
+# Local docs
+/COMMANDS_QUICKREF.md
